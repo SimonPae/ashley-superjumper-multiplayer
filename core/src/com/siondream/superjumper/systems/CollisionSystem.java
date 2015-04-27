@@ -18,6 +18,8 @@ package com.siondream.superjumper.systems;
 
 import java.util.Random;
 
+import appwarp.WarpController;
+
 import com.badlogic.ashley.core.ComponentMapper;
 import com.badlogic.ashley.core.Engine;
 import com.badlogic.ashley.core.Entity;
@@ -166,7 +168,8 @@ public class CollisionSystem extends EntitySystem {
 				BoundsComponent castleBounds = bm.get(castle);
 				
 				if (castleBounds.bounds.overlaps(bobBounds.bounds)) {
-					world.state = World.WORLD_STATE_NEXT_LEVEL;
+//					world.state = World.WORLD_STATE_NEXT_LEVEL;
+					WarpController.getInstance().updateResult(WarpController.GAME_WIN, null); 
 				}
 			}
 		}

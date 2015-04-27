@@ -19,6 +19,7 @@ package com.siondream.superjumper;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
+import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.Animation.PlayMode;
@@ -30,6 +31,8 @@ public class Assets {
 	public static TextureRegion backgroundRegion;
 
 	public static Texture items;
+
+	public static Texture multiplayer;
 	public static TextureRegion mainMenu;
 	public static TextureRegion pauseMenu;
 	public static TextureRegion ready;
@@ -42,6 +45,7 @@ public class Assets {
 	public static TextureRegion pause;
 	public static TextureRegion spring;
 	public static TextureRegion castle;
+	public static TextureRegion enemy;
 	public static Animation coinAnim;
 	public static Animation bobJump;
 	public static Animation bobFall;
@@ -58,15 +62,18 @@ public class Assets {
 	public static Sound coinSound;
 	public static Sound clickSound;
 
-	public static Texture loadTexture (String file) {
+	public static String platformDataString = null;
+
+	public static Texture loadTexture(String file) {
 		return new Texture(Gdx.files.internal(file));
 	}
 
-	public static void load () {
+	public static void load() {
 		background = loadTexture("data/background.png");
 		backgroundRegion = new TextureRegion(background, 0, 0, 320, 480);
 
 		items = loadTexture("data/items.png");
+		multiplayer = loadTexture("data/multiplayer.png");
 		mainMenu = new TextureRegion(items, 0, 224, 300, 110);
 		pauseMenu = new TextureRegion(items, 224, 128, 192, 96);
 		ready = new TextureRegion(items, 320, 224, 192, 32);
@@ -80,28 +87,44 @@ public class Assets {
 
 		spring = new TextureRegion(items, 128, 0, 32, 32);
 		castle = new TextureRegion(items, 128, 64, 64, 64);
-		coinAnim = new Animation(0.2f, new TextureRegion(items, 128, 32, 32, 32), new TextureRegion(items, 160, 32, 32, 32),
-			new TextureRegion(items, 192, 32, 32, 32), new TextureRegion(items, 160, 32, 32, 32));
-		bobJump = new Animation(0.2f, new TextureRegion(items, 0, 128, 32, 32), new TextureRegion(items, 32, 128, 32, 32));
-		bobFall = new Animation(0.2f, new TextureRegion(items, 64, 128, 32, 32), new TextureRegion(items, 96, 128, 32, 32));
+		enemy = new TextureRegion(items, 128, 160, 32, 32);
+		coinAnim = new Animation(0.2f,
+				new TextureRegion(items, 128, 32, 32, 32), new TextureRegion(
+						items, 160, 32, 32, 32), new TextureRegion(items, 192,
+						32, 32, 32), new TextureRegion(items, 160, 32, 32, 32));
+		bobJump = new Animation(0.2f, new TextureRegion(items, 0, 128, 32, 32),
+				new TextureRegion(items, 32, 128, 32, 32));
+		bobFall = new Animation(0.2f,
+				new TextureRegion(items, 64, 128, 32, 32), new TextureRegion(
+						items, 96, 128, 32, 32));
 		bobHit = new Animation(0.2f, new TextureRegion(items, 128, 128, 32, 32));
-		squirrelFly = new Animation(0.2f, new TextureRegion(items, 0, 160, 32, 32), new TextureRegion(items, 32, 160, 32, 32));
-		platform = new Animation(0.2f, new TextureRegion(items, 64, 160, 64, 16));
-		breakingPlatform = new Animation(0.2f, new TextureRegion(items, 64, 160, 64, 16), new TextureRegion(items, 64, 176, 64, 16),
-			new TextureRegion(items, 64, 192, 64, 16), new TextureRegion(items, 64, 208, 64, 16));
+		squirrelFly = new Animation(0.2f, new TextureRegion(items, 0, 160, 32,
+				32), new TextureRegion(items, 32, 160, 32, 32));
+		platform = new Animation(0.2f,
+				new TextureRegion(items, 64, 160, 64, 16));
+		breakingPlatform = new Animation(0.2f, new TextureRegion(items, 64,
+				160, 64, 16), new TextureRegion(items, 64, 176, 64, 16),
+				new TextureRegion(items, 64, 192, 64, 16), new TextureRegion(
+						items, 64, 208, 64, 16));
 
-		font = new BitmapFont(Gdx.files.internal("data/font.fnt"), Gdx.files.internal("data/font.png"), false);
+		font = new BitmapFont(Gdx.files.internal("data/font.fnt"),
+				Gdx.files.internal("data/font.png"), false);
 
 		music = Gdx.audio.newMusic(Gdx.files.internal("data/music.mp3"));
 		music.setLooping(true);
 		music.setVolume(0.5f);
-		if (Settings.soundEnabled) music.play();
+		if (Settings.soundEnabled)
+			music.play();
 		jumpSound = Gdx.audio.newSound(Gdx.files.internal("data/jump.wav"));
-		highJumpSound = Gdx.audio.newSound(Gdx.files.internal("data/highjump.wav"));
+		highJumpSound = Gdx.audio.newSound(Gdx.files
+				.internal("data/highjump.wav"));
 		hitSound = Gdx.audio.newSound(Gdx.files.internal("data/hit.wav"));
 		coinSound = Gdx.audio.newSound(Gdx.files.internal("data/coin.wav"));
 		clickSound = Gdx.audio.newSound(Gdx.files.internal("data/click.wav"));
-		
+
+		FileHandle file = Gdx.files.internal("data/platform.data");
+		platformDataString = file.readString();
+
 		coinAnim.setPlayMode(PlayMode.LOOP);
 		bobJump.setPlayMode(PlayMode.LOOP);
 		bobFall.setPlayMode(PlayMode.LOOP);
@@ -110,7 +133,8 @@ public class Assets {
 		platform.setPlayMode(PlayMode.LOOP);
 	}
 
-	public static void playSound (Sound sound) {
-		if (Settings.soundEnabled) sound.play(1);
+	public static void playSound(Sound sound) {
+		if (Settings.soundEnabled)
+			sound.play(1);
 	}
 }

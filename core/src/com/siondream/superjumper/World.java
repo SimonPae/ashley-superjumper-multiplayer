@@ -18,10 +18,16 @@ package com.siondream.superjumper;
 
 import java.util.Random;
 
+import multiplayer.JsonPlattform;
+import multiplayer.JsonPlattformArray;
+import multiplayer.MultiPlayerBobComponent;
+import multiplayer.Platform;
+
 import com.badlogic.ashley.core.Engine;
 import com.badlogic.ashley.core.Entity;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.utils.Json;
 import com.siondream.superjumper.components.AnimationComponent;
 import com.siondream.superjumper.components.BackgroundComponent;
 import com.siondream.superjumper.components.BobComponent;
@@ -34,9 +40,9 @@ import com.siondream.superjumper.components.MovementComponent;
 import com.siondream.superjumper.components.PlatformComponent;
 import com.siondream.superjumper.components.SpringComponent;
 import com.siondream.superjumper.components.SquirrelComponent;
-import com.siondream.superjumper.components.TransformComponent;
 import com.siondream.superjumper.components.StateComponent;
 import com.siondream.superjumper.components.TextureComponent;
+import com.siondream.superjumper.components.TransformComponent;
 import com.siondream.superjumper.systems.RenderingSystem;
 
 public class World {
@@ -53,7 +59,9 @@ public class World {
 	public int score;
 	public int state;
 	
-	private Engine engine;
+	protected Engine engine;
+	
+	private TransformComponent position;
 
 	public World (Engine engine) {
 		this.engine = engine;
@@ -61,17 +69,27 @@ public class World {
 	}
 	
 	public void create() {
+		create(false);
+	}
+
+	public void create(boolean isMultiPlayer) {
 		Entity bob = createBob();
 		createCamera(bob);
 		createBackground();
-		generateLevel();
+		if(isMultiPlayer){
+			createEnemy();
+			generateMultiPlayerLevel();
+		}
+		else{
+			generateLevel();			
+		}
 
 		this.heightSoFar = 0;
 		this.score = 0;
 		this.state = WORLD_STATE_RUNNING;
 	}
 
-	private void generateLevel () {
+	protected void generateLevel () {
 		float y = PlatformComponent.HEIGHT / 2;
 		float maxJumpHeight = BobComponent.JUMP_VELOCITY * BobComponent.JUMP_VELOCITY / (2 * -gravity.y);
 		while (y < WORLD_HEIGHT - WORLD_WIDTH / 2) {
@@ -99,7 +117,46 @@ public class World {
 		createCastle(WORLD_WIDTH / 2, y);
 	}
 	
-	private Entity createBob() {
+	public void generateMultiPlayerLevel(){
+		try{
+			Json json = new Json();
+			JsonPlattformArray array = json.fromJson(JsonPlattformArray.class, Assets.platformDataString);
+			int i=0;
+			float y = Platform.PLATFORM_HEIGHT / 2;
+			float maxJumpHeight = BobComponent.JUMP_VELOCITY * BobComponent.JUMP_VELOCITY / (2 * -gravity.y);
+			while (y < WORLD_HEIGHT - WORLD_WIDTH / 2) {
+				int type = rand.nextFloat() > 0.8f ? Platform.PLATFORM_TYPE_MOVING : Platform.PLATFORM_TYPE_STATIC;
+				float x = rand.nextFloat() * (WORLD_WIDTH - Platform.PLATFORM_WIDTH) + Platform.PLATFORM_WIDTH / 2;
+				if(i>=array.length()){
+					i=array.length()-1;
+				}
+				JsonPlattform data = array.getJsonPlattform(i);
+				i++;
+				createPlatform(data.getType(), (float)data.getX(), (float)data.getY());
+	
+				if (rand.nextFloat() > 0.9f && type != Platform.PLATFORM_TYPE_MOVING) {
+					createSpring(x, y + PlatformComponent.HEIGHT / 2 + SpringComponent.HEIGHT / 2);
+				}
+	
+				if (y > WORLD_HEIGHT / 3 && rand.nextFloat() > 0.8f) {
+					createSquirrel(x + rand.nextFloat(), y + SquirrelComponent.HEIGHT + rand.nextFloat() * 2);
+				}
+
+				if (rand.nextFloat() > 0.6f) {
+					createCoin(x + MathUtils.random(-0.5f, 0.5f), y + CoinComponent.HEIGHT + rand.nextFloat() * 3);
+				}
+	
+				y += (maxJumpHeight - 0.5f);
+				y -= rand.nextFloat() * (maxJumpHeight / 3);
+			}
+
+			createCastle(WORLD_WIDTH / 2, y);
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+	}
+	
+	protected Entity createBob() {
 		Entity entity = new Entity();
 		
 		AnimationComponent animation = new AnimationComponent();
@@ -136,7 +193,29 @@ public class World {
 		return entity;
 	}
 	
-	private void createPlatform(int type, float x, float y) {
+	protected Entity createEnemy() {
+		Entity entity = new Entity();
+
+		MultiPlayerBobComponent bob = new MultiPlayerBobComponent();
+		position = new TransformComponent();
+		TextureComponent texture = new TextureComponent();
+
+		
+		position.pos.set(5.0f, 1.0f, 0.0f);
+		
+		texture.region = Assets.enemy;
+
+
+		entity.add(bob);
+		entity.add(position);
+		entity.add(texture);
+		
+		engine.addEntity(entity);
+		
+		return entity;
+	}
+	
+	protected void createPlatform(int type, float x, float y) {
 		Entity entity = new Entity();
 		
 		AnimationComponent animation = new AnimationComponent();
@@ -170,7 +249,7 @@ public class World {
 		engine.addEntity(entity);
 	}
 	
-	private void createSpring(float x, float y) {
+	protected void createSpring(float x, float y) {
 		Entity entity = new Entity();
 		
 		SpringComponent spring = new SpringComponent();
@@ -193,7 +272,7 @@ public class World {
 		engine.addEntity(entity);
 	}
 	
-	private void createSquirrel(float x, float y) {
+	protected void createSquirrel(float x, float y) {
 		Entity entity = new Entity();
 		
 		AnimationComponent animation = new AnimationComponent();
@@ -226,7 +305,7 @@ public class World {
 		engine.addEntity(entity);
 	}
 	
-	private void createCoin(float x, float y) {
+	protected void createCoin(float x, float y) {
 		Entity entity = new Entity();
 		
 		AnimationComponent animation = new AnimationComponent();
@@ -255,7 +334,7 @@ public class World {
 		engine.addEntity(entity);
 	}
 	
-	private void createCastle(float x, float y) {
+	protected void createCastle(float x, float y) {
 		Entity entity = new Entity();
 		
 		CastleComponent castle = new CastleComponent();
@@ -278,7 +357,7 @@ public class World {
 		engine.addEntity(entity);
 	}
 	
-	private void createCamera(Entity target) {
+	protected void createCamera(Entity target) {
 		Entity entity = new Entity();
 		
 		CameraComponent camera = new CameraComponent();
@@ -290,7 +369,7 @@ public class World {
 		engine.addEntity(entity);
 	}
 	
-	private void createBackground() {
+	protected void createBackground() {
 		Entity entity = new Entity();
 		
 		BackgroundComponent background = new BackgroundComponent();
@@ -305,4 +384,5 @@ public class World {
 		
 		engine.addEntity(entity);
 	}
+	
 }

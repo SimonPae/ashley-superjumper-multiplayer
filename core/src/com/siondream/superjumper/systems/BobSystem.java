@@ -16,32 +16,45 @@
 
 package com.siondream.superjumper.systems;
 
+import appwarp.WarpController;
+
 import com.badlogic.ashley.core.ComponentMapper;
 import com.badlogic.ashley.core.Entity;
 import com.badlogic.ashley.core.Family;
 import com.badlogic.ashley.systems.IteratingSystem;
+import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.utils.Json;
 import com.siondream.superjumper.World;
 import com.siondream.superjumper.components.BobComponent;
 import com.siondream.superjumper.components.MovementComponent;
-import com.siondream.superjumper.components.TransformComponent;
 import com.siondream.superjumper.components.StateComponent;
+import com.siondream.superjumper.components.TransformComponent;
 
 public class BobSystem extends IteratingSystem {
+	
+
 	private static final Family family = Family.all(BobComponent.class,
 													   StateComponent.class,
 													   TransformComponent.class,
 													   MovementComponent.class).get();
-	
-	private float accelX = 0.0f;
+	protected float accelX = 0.0f;
 	private World world;
 	
-	private ComponentMapper<BobComponent> bm;
-	private ComponentMapper<StateComponent> sm;
-	private ComponentMapper<TransformComponent> tm;
-	private ComponentMapper<MovementComponent> mm;
+	protected ComponentMapper<BobComponent> bm;
+	protected ComponentMapper<StateComponent> sm;
+	protected ComponentMapper<TransformComponent> tm;
+	protected ComponentMapper<MovementComponent> mm;
+
+	public float x;
+
+	public float y;
+
+	public int width;
+
+	public int height;
 	
 	public BobSystem(World world) {
-		super(family);
+		super(family );
 		
 		this.world = world;
 		
@@ -60,6 +73,8 @@ public class BobSystem extends IteratingSystem {
 		super.update(deltaTime);
 		
 		accelX = 0.0f;
+		
+		sendLocation(x,y);
 	}
 	
 	@Override
@@ -98,6 +113,11 @@ public class BobSystem extends IteratingSystem {
 		}
 		
 		t.scale.x = mov.velocity.x < 0.0f ? Math.abs(t.scale.x) * -1.0f : Math.abs(t.scale.x);
+		float side = mov.velocity.x < 0 ? -1 : 1;
+		x = t.pos.x - 0.5f;
+		y = t.pos.y - (0.5f * side);
+		width =  1;
+		height = 1;
 		
 		bob.heightSoFar = Math.max(t.pos.y, bob.heightSoFar);
 		
@@ -134,5 +154,16 @@ public class BobSystem extends IteratingSystem {
 		
 		mov.velocity.y = BobComponent.JUMP_VELOCITY * 1.5f;
 		state.set(BobComponent.STATE_JUMP);
+	}
+		
+	private void sendLocation(float x, float y) {
+		try {
+			Json data = new Json();
+			String message = data.toJson(new Vector2(x, y));
+			WarpController.getInstance().sendGameUpdate(message);
+
+		} catch (Exception e) {
+			// exception in sendLocation
+		}
 	}
 }
